@@ -17,17 +17,7 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // Seed roles first
-        $this->call(RoleSeeder::class);
-
-        // Create Super Admin User
-        User::create([
-            'name' => 'Super Admin',
-            'email' => 'admin@example.com',
-            'password' => Hash::make('password'),
-            'role_id' => 2, // Provide the missing value here
-            'store_id' => null,
-        ]);
-
+        // Intentionally left blank for production
+        // Do NOT create users here
     }
 }
