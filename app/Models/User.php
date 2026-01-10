@@ -34,13 +34,24 @@ class User extends Authenticatable
         parent::boot();
 
         static::creating(function ($user) {
-            // Ensure role_id is set if not provided
-            if (empty($user->role_id)) {
-                $defaultRole = Role::where('name', 'client_user')->first() 
-                    ?? Role::first();
-                
-                if ($defaultRole) {
-                    $user->role_id = $defaultRole->id;
+            // Ensure role_id is set if not provided or is null
+            if (empty($user->role_id) || is_null($user->role_id)) {
+                try {
+                    $defaultRole = Role::where('name', 'client_user')->first() 
+                        ?? Role::where('name', 'store_user')->first()
+                        ?? Role::first();
+                    
+                    if ($defaultRole) {
+                        $user->role_id = $defaultRole->id;
+                    } else {
+                        // If no roles exist, create a default one
+                        $defaultRole = Role::create(['name' => 'client_user']);
+                        $user->role_id = $defaultRole->id;
+                    }
+                } catch (\Exception $e) {
+                    // If roles table doesn't exist yet, we'll handle it in migration
+                    // For now, set a temporary value that will be updated later
+                    $user->role_id = 1;
                 }
             }
         });

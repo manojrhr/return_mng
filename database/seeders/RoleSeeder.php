@@ -19,7 +19,7 @@ class RoleSeeder extends Seeder
             'warehouse_user',
             'client_user'
         ] as $role) {
-            Role::create(['name' => $role]);
+            Role::firstOrCreate(['name' => $role]);
         }
     }
 }

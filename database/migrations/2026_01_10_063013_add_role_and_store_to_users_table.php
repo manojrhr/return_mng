@@ -13,7 +13,8 @@ return new class extends Migration
     {
         Schema::table('users', function (Blueprint $table) {
             if (!Schema::hasColumn('users', 'role_id')) {
-                $table->foreignId('role_id')->after('id')->constrained();
+                // Make nullable initially - boot method will set it
+                $table->foreignId('role_id')->nullable()->after('id')->constrained();
             }
             if (!Schema::hasColumn('users', 'store_id')) {
                 $table->foreignId('store_id')->nullable()->after('role_id')->constrained()->onDelete('cascade');
