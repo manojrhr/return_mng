@@ -26,6 +26,26 @@ class User extends Authenticatable
         'store_id'
     ];
 
+    /**
+     * Boot the model.
+     */
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::creating(function ($user) {
+            // Ensure role_id is set if not provided
+            if (empty($user->role_id)) {
+                $defaultRole = Role::where('name', 'client_user')->first() 
+                    ?? Role::first();
+                
+                if ($defaultRole) {
+                    $user->role_id = $defaultRole->id;
+                }
+            }
+        });
+    }
+
     public function role()
     {
         return $this->belongsTo(Role::class);
