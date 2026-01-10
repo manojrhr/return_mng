@@ -1,0 +1,42 @@
+<?php
+
+namespace App\Http\Controllers\Api;
+
+use App\Http\Controllers\Controller;
+use App\Models\Store;
+use App\Models\User;
+use Illuminate\Support\Facades\Hash;
+use App\Http\Requests\StoreRegisterRequest;
+
+class StoreController extends Controller
+{
+    public function register(StoreRegisterRequest $request)
+    {
+        // Create Store
+        $store = Store::create([
+            'store_name' => $request->store_name,
+            'store_code' => $request->store_code,
+            'point_of_contact' => $request->point_of_contact,
+            'email' => $request->email,
+            'phone' => $request->phone,
+            'address' => $request->address
+        ]);
+
+        // Create Store User
+        $user = User::create([
+            'name' => $request->name,
+            'email' => $request->email,
+            'password' => Hash::make($request->password),
+            'role_id' => 2, // store_user
+            'store_id' => $store->id
+        ]);
+
+        $token = $user->createToken('store-token')->plainTextToken;
+
+        return response()->json([
+            'message' => 'Store registered successfully',
+            'store' => $store,
+            'token' => $token
+        ], 201);
+    }
+}
