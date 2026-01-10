@@ -30,23 +30,57 @@ return new class extends Migration
                 ->first() 
                 ?? \DB::table('roles')->first();
             
+            $defaultRoleId = $defaultRole ? $defaultRole->id : 1;
+            
             if ($defaultRole) {
                 // Update any existing users without role_id
                 \DB::table('users')
                     ->whereNull('role_id')
-                    ->update(['role_id' => $defaultRole->id]);
+                    ->update(['role_id' => $defaultRoleId]);
             }
             
-            // Make the column nullable to allow inserts without role_id
-            // The User model's boot method will set it automatically
-            try {
-                \DB::statement('ALTER TABLE `users` MODIFY `role_id` BIGINT UNSIGNED NULL');
-            } catch (\Exception $e) {
-                // Column might already be nullable, or we're using a different DB
-                // Try Laravel's way
-                Schema::table('users', function (Blueprint $table) {
-                    $table->foreignId('role_id')->nullable()->change();
-                });
+            // CRITICAL: Make the column nullable AND set a default value
+            // This ensures MySQL won't reject inserts even if boot method fails
+            $driver = \DB::connection()->getDriverName();
+            
+            if ($driver === 'mysql') {
+                // For MySQL, we need to drop foreign key first, modify column, then re-add foreign key
+                try {
+                    // Drop foreign key constraint if it exists
+                    $foreignKeys = \DB::select("
+                        SELECT CONSTRAINT_NAME 
+                        FROM information_schema.KEY_COLUMN_USAGE 
+                        WHERE TABLE_SCHEMA = DATABASE() 
+                        AND TABLE_NAME = 'users' 
+                        AND COLUMN_NAME = 'role_id' 
+                        AND REFERENCED_TABLE_NAME IS NOT NULL
+                    ");
+                    
+                    foreach ($foreignKeys as $fk) {
+                        \DB::statement("ALTER TABLE `users` DROP FOREIGN KEY `{$fk->CONSTRAINT_NAME}`");
+                    }
+                    
+                    // Modify column to be nullable with default
+                    \DB::statement("ALTER TABLE `users` MODIFY `role_id` BIGINT UNSIGNED NULL DEFAULT {$defaultRoleId}");
+                    
+                    // Re-add foreign key constraint
+                    \DB::statement("ALTER TABLE `users` ADD CONSTRAINT `users_role_id_foreign` FOREIGN KEY (`role_id`) REFERENCES `roles` (`id`)");
+                } catch (\Exception $e) {
+                    // If foreign key doesn't exist or other error, just modify the column
+                    \DB::statement("ALTER TABLE `users` MODIFY `role_id` BIGINT UNSIGNED NULL DEFAULT {$defaultRoleId}");
+                }
+            } else {
+                // For other databases, use Laravel's Schema
+                try {
+                    Schema::table('users', function (Blueprint $table) use ($defaultRoleId) {
+                        $table->foreignId('role_id')->nullable()->default($defaultRoleId)->change();
+                    });
+                } catch (\Exception $e) {
+                    // Fallback: just make it nullable
+                    Schema::table('users', function (Blueprint $table) {
+                        $table->foreignId('role_id')->nullable()->change();
+                    });
+                }
             }
         }
     }

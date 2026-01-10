@@ -34,8 +34,8 @@ class User extends Authenticatable
         parent::boot();
 
         static::creating(function ($user) {
-            // Ensure role_id is set if not provided or is null
-            if (empty($user->role_id) || is_null($user->role_id)) {
+            // ALWAYS ensure role_id is set - check if it's missing, null, or 0
+            if (!isset($user->role_id) || empty($user->role_id) || is_null($user->role_id) || $user->role_id === 0) {
                 try {
                     $defaultRole = Role::where('name', 'client_user')->first() 
                         ?? Role::where('name', 'store_user')->first()
@@ -49,9 +49,29 @@ class User extends Authenticatable
                         $user->role_id = $defaultRole->id;
                     }
                 } catch (\Exception $e) {
-                    // If roles table doesn't exist yet, we'll handle it in migration
-                    // For now, set a temporary value that will be updated later
+                    // If roles table doesn't exist yet, set a temporary value
+                    // This should not happen in production, but prevents fatal errors
                     $user->role_id = 1;
+                }
+            }
+        });
+
+        // Also handle updating in case role_id gets removed somehow
+        static::saving(function ($user) {
+            if (!isset($user->role_id) || empty($user->role_id) || is_null($user->role_id) || $user->role_id === 0) {
+                try {
+                    $defaultRole = Role::where('name', 'client_user')->first() 
+                        ?? Role::where('name', 'store_user')->first()
+                        ?? Role::first();
+                    
+                    if ($defaultRole) {
+                        $user->role_id = $defaultRole->id;
+                    }
+                } catch (\Exception $e) {
+                    // Fallback
+                    if (!isset($user->role_id) || empty($user->role_id)) {
+                        $user->role_id = 1;
+                    }
                 }
             }
         });
