@@ -25,7 +25,7 @@ class DatabaseSeeder extends Seeder
             'name' => 'Super Admin',
             'email' => 'admin@example.com',
             'password' => Hash::make('password'),
-            'role_id' => Role::where('name', 'super_admin')->first()->id,
+            'role_id' => 2, // Provide the missing value here
             'store_id' => null,
         ]);
 
