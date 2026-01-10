@@ -24,13 +24,19 @@ class UserFactory extends Factory
      */
     public function definition(): array
     {
+        // Get client_user role, or create it if it doesn't exist
+        $role = Role::firstOrCreate(
+            ['name' => 'client_user'],
+            ['name' => 'client_user']
+        );
+
         return [
             'name' => fake()->name(),
             'email' => fake()->unique()->safeEmail(),
             'email_verified_at' => now(),
-            'password' => Hash::make('password'),
+            'password' => static::$password ??= Hash::make('password'),
             'remember_token' => Str::random(10),
-            'role_id' => Role::where('name', 'client_user')->first()->id,
+            'role_id' => $role->id,
             'store_id' => null,
         ];
     }
