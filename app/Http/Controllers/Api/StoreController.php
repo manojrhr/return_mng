@@ -7,6 +7,7 @@ use App\Models\Store;
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
 use App\Http\Requests\StoreRegisterRequest;
+use App\Models\Role;
 
 class StoreController extends Controller
 {
@@ -22,12 +23,20 @@ class StoreController extends Controller
             'address' => $request->address
         ]);
 
+        $storeUserRole = Role::where('name', 'store_user')->first();
+
+        if (! $storeUserRole) {
+            return response()->json([
+                'message' => 'Store user role not found. Please contact admin.'
+            ], 500);
+        }
+
         // Create Store User
         $user = User::create([
             'name' => $request->name,
             'email' => $request->email,
             'password' => Hash::make($request->password),
-            'role_id' => 2, // store_user
+            'role_id' => $storeUserRole->id,
             'store_id' => $store->id
         ]);
 
