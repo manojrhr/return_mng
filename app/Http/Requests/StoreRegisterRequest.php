@@ -3,6 +3,9 @@
 namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Contracts\Validation\Validator;
+use Illuminate\Http\Exceptions\HttpResponseException;
+use Illuminate\Validation\Rules;
 
 class StoreRegisterRequest extends FormRequest
 {
@@ -31,5 +34,20 @@ class StoreRegisterRequest extends FormRequest
             'address' => 'required',
             'password' => 'required|min:6'
         ];
+    }
+
+
+    protected function failedValidation(Validator $validator)
+    {
+        if ($this->wantsJson()) {
+            $errors = implode(', ', $validator->messages()->all()); // Concatenates error messages with a comma and space
+
+            throw new HttpResponseException(response()->json([
+                'success' => false,
+                'message' => $errors,
+            ], 422));
+        }
+        // Default behavior for non-JSON requests
+        parent::failedValidation($validator);
     }
 }
