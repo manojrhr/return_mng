@@ -27,6 +27,7 @@ class StoreController extends Controller
 
         if (! $storeUserRole) {
             return response()->json([
+                'status' => false,
                 'message' => 'Store user role not found. Please contact admin.'
             ], 500);
         }
@@ -43,6 +44,7 @@ class StoreController extends Controller
         $token = $user->createToken('store-token')->plainTextToken;
 
         return response()->json([
+            'status' => true,
             'message' => 'Store registered successfully',
             'store' => $store,
             'token' => $token
